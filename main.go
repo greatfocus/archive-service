@@ -29,8 +29,8 @@ func main() {
 	// background task
 	tasks := task.Tasks{}
 	tasks.Init(&db)
-	gfcron.New().MustAddJob("0 0 * * *", tasks.ExtractBackgroundFile)
-	gfcron.New().MustAddJob("0 0 * * *", tasks.ArchiveBackgroundFile)
+	gfcron.New().MustAddJob("* * * * *", tasks.ExtractBackgroundFile)
+	gfcron.New().MustAddJob("* * * * *", tasks.ArchiveBackgroundFile)
 
 	mux := router.LoadRouter(&db)
 	serve(mux)

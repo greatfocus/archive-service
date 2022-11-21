@@ -1,0 +1,19 @@
+@host = localhost:5001
+@contentType = application/json
+
+### Get Status
+# @name getStatus
+GET http://{{host}}/archive?id=c1f35e45-8148-407f-838b-38e4faecd21c
+Content-Type: {{contentType}}
+
+
+### Create Archive
+# @name createArchive
+POST http://{{host}}/archive
+Content-Type: {{contentType}}
+
+{
+    "file": "/test.zip",
+    "dir" : "/tmp/test",
+    "background": true
+}

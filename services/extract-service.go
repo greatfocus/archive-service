@@ -1,15 +1,9 @@
 package services
 
 import (
-	"archive/zip"
 	"context"
 	"database/sql"
 	"errors"
-	"io"
-	"log"
-	"os"
-	"path/filepath"
-	"strings"
 
 	"github.com/google/uuid"
 
@@ -26,51 +20,37 @@ type ExtractService struct {
 func (e *ExtractService) Init(db *database.Conn) {
 	e.database = db
 }
-
 func (e *ExtractService) CreateExtract(ctx context.Context, req *models.Request) (*models.Request, error) {
-	req.ID = uuid.New().String()
-	file := req.Dir + "/" + req.File
-	dst := req.Dir
-
-	archive, err := zip.OpenReader(file)
+	_, err := e.insertRecordToDB(ctx, req)
 	if err != nil {
-		return req, errors.New("files does not exist")
+		return req, err
 	}
-	defer archive.Close()
 
-	for _, f := range archive.File {
-		var filePath = filepath.Join(dst, f.Name)
-		log.Println("unzipping file ", filePath)
+	// Check for background execution
+	if req.Background {
+		return req, nil
+	} else {
+		return e.archiveFiles(ctx, req)
+	}
 
-		if !strings.HasPrefix(filePath, filepath.Clean(dst)+string(os.PathSeparator)) {
-			return req, errors.New("invalid file path")
-		}
-		if f.FileInfo().IsDir() {
-			log.Println("creating directory...")
-			os.MkdirAll(filePath, os.ModePerm)
-			continue
-		}
+}
 
-		if err := os.MkdirAll(filepath.Dir(filePath), os.ModePerm); err != nil {
-			return req, err
-		}
+func (e *ExtractService) archiveFiles(ctx context.Context, req *models.Request) (*models.Request, error) {
 
-		dstFile, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
-		if err != nil {
-			return req, err
-		}
+	return req, nil
+}
 
-		fileInArchive, err := f.Open()
-		if err != nil {
-			return req, err
-		}
-
-		if _, err := io.Copy(dstFile, fileInArchive); err != nil {
-			return req, err
-		}
-
-		dstFile.Close()
-		fileInArchive.Close()
+func (e *ExtractService) insertRecordToDB(ctx context.Context, req *models.Request) (*models.Request, error) {
+	req.ID = uuid.New().String()
+	req.Status = "new"
+	query := `
+	insert into extract (id, fileName, dir, status, aligorithm, filters, partialExtraction, background)
+	archive VALUES(?,?,?,?,?,?,?,?)
+	returning id
+	`
+	_, inserted := e.database.Insert(ctx, query, req.ID, req.File, req.Dir, req.Status, req.Aligorithm, req.Filters, req.PartialExtraction, req.Background)
+	if !inserted {
+		return req, errors.New("failed to insert archive")
 	}
 	return req, nil
 }
@@ -86,7 +66,7 @@ func (e *ExtractService) GetStatus(ctx context.Context, id string) (models.Reque
 	err := row.Scan(&result.ID, &result.File, &result.Dir, &result.Status, &result.CreatedOn)
 	switch err {
 	case sql.ErrNoRows:
-		return result, err
+		return result, nil
 	case nil:
 		// update cache
 		return result, nil

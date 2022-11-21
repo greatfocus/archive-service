@@ -14,8 +14,8 @@ type Request struct {
 	Status            string    `json:"status,omitempty"`
 	Filters           string    `json:"filters,omitempty"`
 	Aligorithm        string    `json:"aligorithm,omitempty"`
-	PartialExtraction bool      `json:"partialExtraction,omitempty"`
-	Background        bool      `json:"backgroundExtraction,omitempty"`
+	PartialExtraction string    `json:"partialExtraction,omitempty"`
+	Background        bool      `json:"background,omitempty"`
 	CreatedOn         time.Time `json:"-"`
 }
 
