@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/google/uuid"
 
@@ -55,6 +56,7 @@ func (e *ExtractService) InitiateExtract(ctx context.Context, req *models.Reques
 }
 
 func (e *ExtractService) extractFiles(req *models.Request) (*models.Request, error) {
+	hasFilteredName := false
 	zipPath := req.Dir + req.File
 	read, err := zip.OpenReader(zipPath)
 	if err != nil {
@@ -62,7 +64,22 @@ func (e *ExtractService) extractFiles(req *models.Request) (*models.Request, err
 	}
 	defer read.Close()
 
+	// filter names
+	var fileNames = make(map[string]string)
+	if len(req.FilteredNames) > 1 {
+		hasFilteredName = true
+		names := strings.Split(req.FilteredNames, "|")
+		for _, n := range names {
+			fileNames[n] = n
+		}
+	}
+
 	for _, file := range read.File {
+		namedFile := fileNames[file.Name]
+		if hasFilteredName && len(namedFile) < 1 {
+			break
+		}
+
 		zippedFile, err := file.Open()
 		if err != nil {
 			return req, err
@@ -116,7 +133,7 @@ func (e *ExtractService) insertRecordToDB(ctx context.Context, req *models.Reque
 	insert into extract (id, fileName, dir, status, aligorithm, filters, partialExtraction, background)
 	VALUES(?,?,?,?,?,?,?,?);
 	`
-	_, inserted := e.database.Insert(ctx, query, req.ID, req.File, req.Dir, req.Status, req.Aligorithm, req.Filters, req.PartialExtraction, req.Background)
+	_, inserted := e.database.Insert(ctx, query, req.ID, req.File, req.Dir, req.Status, req.Aligorithm, req.FilteredNames, req.PartialExtraction, req.Background)
 	if !inserted {
 		return req, errors.New("failed to insert extract")
 	}

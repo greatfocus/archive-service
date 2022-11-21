@@ -14,6 +14,27 @@ Content-Type: {{contentType}}
 
 {
     "file": "/test.zip",
+    "dir" : "/tmp/test"
+}
+
+### Create Background Extract
+# @name createdBackgrounExtract
+POST http://{{host}}/extract
+Content-Type: {{contentType}}
+
+{
+    "file": "/test.zip",
     "dir" : "/tmp/test",
     "background": true
+}
+
+### Create Filtered Extract
+# @name createFilteredExtract
+POST http://{{host}}/extract
+Content-Type: {{contentType}}
+
+{
+    "file": "/test.zip",
+    "dir" : "/tmp/test",
+    "filteredNames": "continuous_deployment.yaml"
 }

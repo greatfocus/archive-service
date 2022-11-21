@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS archive (
 	dir TEXT NOT NULL,
 	status TEXT NOT NULL,
 	aligorithm TEXT NULL,
-	filters TEXT NULL,
+	filteredNames TEXT NULL,
 	background BOOLEAN NOT NULL CHECK (background IN (0, 1)),
 	createdOn TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

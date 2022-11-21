@@ -12,7 +12,7 @@ type Request struct {
 	File              string    `json:"file,omitempty"`
 	Dir               string    `json:"dir,omitempty"`
 	Status            string    `json:"status,omitempty"`
-	Filters           string    `json:"filters,omitempty"`
+	FilteredNames     string    `json:"filteredNames,omitempty"`
 	Aligorithm        string    `json:"aligorithm,omitempty"`
 	PartialExtraction string    `json:"partialExtraction,omitempty"`
 	Background        bool      `json:"background,omitempty"`

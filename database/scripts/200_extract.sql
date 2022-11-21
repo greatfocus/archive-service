@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS extract (
 	dir TEXT NOT NULL,
 	status TEXT NOT NULL,
 	aligorithm TEXT NULL,
-	filters TEXT NULL,
+	filteredNames TEXT NULL,
 	partialExtraction TEXT NULL,
 	background BOOLEAN NOT NULL CHECK (background IN (false, true)),
 	createdOn TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP

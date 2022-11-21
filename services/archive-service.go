@@ -73,10 +73,10 @@ func (a *ArchiveService) insertRecordToDB(ctx context.Context, req *models.Reque
 	req.ID = uuid.New().String()
 	req.Status = "new"
 	query := `
-	INSERT INTO archive(id, fileName, dir, status, aligorithm, filters, background)
+	INSERT INTO archive(id, fileName, dir, status, aligorithm, filteredNames, background)
 	VALUES($1,$2,$3,$4,$5,$6,$7);
 	`
-	_, inserted := a.database.Insert(ctx, query, req.ID, req.File, req.Dir, req.Status, req.Aligorithm, req.Filters, req.Background)
+	_, inserted := a.database.Insert(ctx, query, req.ID, req.File, req.Dir, req.Status, req.Aligorithm, req.FilteredNames, req.Background)
 	if !inserted {
 		return req, errors.New("failed to insert archive")
 	}
@@ -127,11 +127,29 @@ func compress(files []string, req *models.Request) error {
 	zipw := zip.NewWriter(file)
 	defer zipw.Close()
 
+	// filter names
+	var fileNames = make(map[string]string)
+	hasFilteredName := false
+	if len(req.FilteredNames) > 1 {
+		hasFilteredName = true
+		names := strings.Split(req.FilteredNames, "|")
+		for _, n := range names {
+			fileNames[n] = n
+		}
+	}
+
 	for _, filename := range files {
 		if len(filename) > 1 && !strings.Contains(req.File, filename) {
-			if err := appendFiles(req.Dir, filename, zipw); err != nil {
-				return err
+			if hasFilteredName {
+				if err := appendFilteredFiles(req.Dir, filename, fileNames, zipw); err != nil {
+					return err
+				}
+			} else {
+				if err := appendFiles(req.Dir, filename, zipw); err != nil {
+					return err
+				}
 			}
+
 		}
 	}
 	return nil
@@ -153,6 +171,30 @@ func appendFiles(dir, filename string, zipw *zip.Writer) error {
 
 	if _, err := io.Copy(wr, file); err != nil {
 		return fmt.Errorf("failed to write %s to zip: %s", filename, err)
+	}
+
+	return nil
+}
+
+func appendFilteredFiles(dir, filename string, filteredNames map[string]string, zipw *zip.Writer) error {
+	namedFile := filteredNames[filename]
+	if len(namedFile) > 1 {
+		fileLoc := dir + "/" + filename
+		file, err := os.Open(fileLoc)
+		if err != nil {
+			return fmt.Errorf("failed to open %s: %s", filename, err)
+		}
+		defer file.Close()
+
+		wr, err := zipw.Create(filename)
+		if err != nil {
+			msg := "failed to create entry for %s in zip file: %s"
+			return fmt.Errorf(msg, filename, err)
+		}
+
+		if _, err := io.Copy(wr, file); err != nil {
+			return fmt.Errorf("failed to write %s to zip: %s", filename, err)
+		}
 	}
 
 	return nil
