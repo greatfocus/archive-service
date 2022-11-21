@@ -63,7 +63,7 @@ func (a *Archive) createArchive(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = req.Validate("add")
+	err = req.Validate("archive")
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		Error(w, r, err)

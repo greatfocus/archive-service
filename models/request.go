@@ -22,7 +22,15 @@ type Request struct {
 // Validate check if request is valid
 func (r *Request) Validate(action string) error {
 	switch strings.ToLower(action) {
-	case "add":
+	case "archive":
+		if r.File == "" {
+			return errors.New("file is required")
+		}
+		if r.Dir == "" {
+			return errors.New("dir is required")
+		}
+		return nil
+	case "extract":
 		if r.File == "" {
 			return errors.New("file is required")
 		}

@@ -63,6 +63,13 @@ func (f *Extract) createExtract(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	err = req.Validate("extract")
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		Error(w, r, err)
+		return
+	}
+
 	res, err := f.extractService.CreateExtract(ctx, &req)
 	if err != nil {
 		log.Printf("%s", err)

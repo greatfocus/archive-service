@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS extract (
 	status TEXT NOT NULL,
 	aligorithm TEXT NULL,
 	filters TEXT NULL,
-	partialExtraction TEXT NOT NULL CHECK (partialExtraction IN (0, 1)),
-	background BOOLEAN NOT NULL CHECK (background IN (0, 1)),
+	partialExtraction TEXT NULL,
+	background BOOLEAN NOT NULL CHECK (background IN (false, true)),
 	createdOn TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

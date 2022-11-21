@@ -31,37 +31,82 @@ func (t *Tasks) Init(db *database.Conn) {
 
 // ExtractBackgroundFile start the job to extract files in the background
 func (t *Tasks) ExtractBackgroundFile() {
-	// ctx, cancel := context.WithTimeout(context.Background(), time.Duration(1)*time.Minute)
-	// defer cancel()
+	log.Println("Scheduler_ExtractBackgroundFile started")
+	list, err := t.getBackgroundExtracts()
+	if err != nil {
+		log.Println("Scheduler_ExtractBackgroundFile failed to fetch archives")
+		return
+	}
+	if len(list) > 0 {
+		t.extractBulk(list)
+	} else {
+		log.Println("Scheduler_ExtractBackgroundFile queued is empty")
+	}
+	log.Println("Scheduler_ExtractBackgroundFile finished")
+}
 
+func (t *Tasks) extractBulk(list []models.Request) {
+	for i := 0; i < len(list); i++ {
+
+		go func(req *models.Request) {
+			ctx, cancel := context.WithTimeout(context.Background(), time.Duration(1)*time.Minute)
+			defer cancel()
+			t.extractService.InitiateExtract(ctx, req)
+		}(&list[i])
+	}
+}
+
+func (t *Tasks) getBackgroundExtracts() ([]models.Request, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(1)*time.Minute)
+	defer cancel()
+	query := `
+	select id, fileName, dir, status, createdOn
+	from extract
+	where status = ? and background = ?
+	LIMIT 10;
+	`
+	rows, err := t.database.Query(ctx, query, "new", true)
+	if err != nil {
+		return nil, err
+	}
+	result, err := archiveMapper(rows)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 // ArchiveBackgroundFile start the job to archive files in the background
 func (t *Tasks) ArchiveBackgroundFile() {
 	log.Println("Scheduler_ArchiveBackgroundFile started")
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(3)*time.Minute)
-	defer cancel()
-
-	list, err := t.getBackgroundArchives(ctx)
+	list, err := t.getBackgroundArchives()
 	if err != nil {
 		log.Println("Scheduler_ArchiveBackgroundFile failed to fetch archives")
 		return
 	}
 	if len(list) > 0 {
-		t.archiveBulk(ctx, list)
+		t.archiveBulk(list)
 	} else {
-		log.Println("Scheduler_ArchiveBackgroundFile Email queued is empty")
+		log.Println("Scheduler_ArchiveBackgroundFile queued is empty")
 	}
 	log.Println("Scheduler_ArchiveBackgroundFile finished")
 }
 
-func (t *Tasks) archiveBulk(ctx context.Context, list []models.Request) {
+func (t *Tasks) archiveBulk(list []models.Request) {
 	for i := 0; i < len(list); i++ {
-		go t.archiveService.InitiateArchive(ctx, &list[i])
+
+		go func(req *models.Request) {
+			ctx, cancel := context.WithTimeout(context.Background(), time.Duration(1)*time.Minute)
+			defer cancel()
+			t.archiveService.InitiateArchive(ctx, req)
+		}(&list[i])
 	}
 }
 
-func (t *Tasks) getBackgroundArchives(ctx context.Context) ([]models.Request, error) {
+func (t *Tasks) getBackgroundArchives() ([]models.Request, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(1)*time.Minute)
+	defer cancel()
 	query := `
 	select id, fileName, dir, status, createdOn
 	from archive
