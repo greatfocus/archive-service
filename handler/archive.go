@@ -15,7 +15,6 @@ import (
 
 // Archive struct
 type Archive struct {
-	archiveHandler func(http.ResponseWriter, *http.Request)
 	archiveService *services.ArchiveService
 }
 
@@ -101,7 +100,6 @@ func (a *Archive) getStatus(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusUnprocessableEntity)
 	Error(w, r, errors.New("invalid payload request"))
-	return
 }
 
 // Success returns object as json

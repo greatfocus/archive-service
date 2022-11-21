@@ -15,7 +15,6 @@ import (
 
 // Extract struct
 type Extract struct {
-	extractHandler func(http.ResponseWriter, *http.Request)
 	extractService *services.ExtractService
 }
 
@@ -101,5 +100,4 @@ func (f *Extract) getStatus(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusUnprocessableEntity)
 	Error(w, r, errors.New("invalid payload request"))
-	return
 }
