@@ -16,8 +16,6 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-// add partial extraction
-// read me
 func main() {
 	// Load environment variables
 	if err := godotenv.Load(".env"); err != nil {
