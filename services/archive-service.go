@@ -9,6 +9,8 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/google/uuid"
@@ -56,7 +58,7 @@ func (a *ArchiveService) InitiateArchive(ctx context.Context, req *models.Reques
 }
 
 func (a *ArchiveService) archiveFiles(ctx context.Context, req *models.Request) (*models.Request, error) {
-	fileNames, err := getListOfFileNames(req.Dir)
+	fileNames, err := getListOfFileNames(req)
 	if err != nil {
 		return req, err
 	}
@@ -127,29 +129,11 @@ func compress(files []string, req *models.Request) error {
 	zipw := zip.NewWriter(file)
 	defer zipw.Close()
 
-	// filter names
-	var fileNames = make(map[string]string)
-	hasFilteredName := false
-	if len(req.FilteredNames) > 1 {
-		hasFilteredName = true
-		names := strings.Split(req.FilteredNames, "|")
-		for _, n := range names {
-			fileNames[n] = n
-		}
-	}
-
 	for _, filename := range files {
-		if len(filename) > 1 && !strings.Contains(req.File, filename) {
-			if hasFilteredName {
-				if err := appendFilteredFiles(req.Dir, filename, fileNames, zipw); err != nil {
-					return err
-				}
-			} else {
-				if err := appendFiles(req.Dir, filename, zipw); err != nil {
-					return err
-				}
+		if len(filename) > 1 {
+			if err := appendFiles(req.Dir, filename, zipw); err != nil {
+				return err
 			}
-
 		}
 	}
 	return nil
@@ -176,44 +160,50 @@ func appendFiles(dir, filename string, zipw *zip.Writer) error {
 	return nil
 }
 
-func appendFilteredFiles(dir, filename string, filteredNames map[string]string, zipw *zip.Writer) error {
-	namedFile := filteredNames[filename]
-	if len(namedFile) > 1 {
-		fileLoc := dir + "/" + filename
-		file, err := os.Open(fileLoc)
-		if err != nil {
-			return fmt.Errorf("failed to open %s: %s", filename, err)
-		}
-		defer file.Close()
-
-		wr, err := zipw.Create(filename)
-		if err != nil {
-			msg := "failed to create entry for %s in zip file: %s"
-			return fmt.Errorf(msg, filename, err)
-		}
-
-		if _, err := io.Copy(wr, file); err != nil {
-			return fmt.Errorf("failed to write %s to zip: %s", filename, err)
+func getListOfFileNames(req *models.Request) ([]string, error) {
+	// filter names
+	var fileNames = make(map[string]string)
+	if len(req.FilteredNames) > 1 {
+		names := strings.Split(req.FilteredNames, "|")
+		for _, n := range names {
+			fileNames[n] = n
 		}
 	}
 
-	return nil
-}
-
-func getListOfFileNames(path string) ([]string, error) {
-	len := 10
+	limit := 10
 	result := make([]string, 10)
-	count := 0
-	files, err := ioutil.ReadDir(path)
+	count := 1
+	files, err := ioutil.ReadDir(req.Dir)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, file := range files {
-		if !file.IsDir() && count < (len-1) {
-			result = append(result, file.Name())
+	if len(fileNames) > 0 {
+		for _, file := range files {
+			if len(file.Name()) > 0 {
+				name := strings.TrimSuffix(file.Name(), filepath.Ext(file.Name()))
+				namedFile := fileNames[name]
+				if !file.IsDir() && count <= limit && len(namedFile) > 0 {
+					result[count-1] = file.Name()
+					count++
+				}
+			}
+		}
+	} else {
+		sortFileSizeDescend(files)
+		for _, file := range files {
+			if !file.IsDir() && count <= limit && !strings.Contains(req.File, file.Name()) {
+				result[count-1] = file.Name()
+				count++
+			}
 		}
 	}
 
 	return result, nil
+}
+
+func sortFileSizeDescend(files []os.FileInfo) {
+	sort.Slice(files, func(i, j int) bool {
+		return files[i].Size() > files[j].Size()
+	})
 }

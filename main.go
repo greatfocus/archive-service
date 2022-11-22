@@ -17,9 +17,7 @@ import (
 )
 
 // add partial extraction
-// top 10 large files
 // read me
-// submit
 func main() {
 	// Load environment variables
 	if err := godotenv.Load(".env"); err != nil {

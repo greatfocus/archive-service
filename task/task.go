@@ -60,7 +60,7 @@ func (t *Tasks) getBackgroundExtracts() ([]models.Request, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(1)*time.Minute)
 	defer cancel()
 	query := `
-	select id, fileName, dir, status, createdOn
+	select id, fileName, dir, status, filteredNames, createdOn
 	from extract
 	where status = ? and background = ?
 	LIMIT 10;
@@ -108,7 +108,7 @@ func (t *Tasks) getBackgroundArchives() ([]models.Request, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(1)*time.Minute)
 	defer cancel()
 	query := `
-	select id, fileName, dir, status, createdOn
+	select id, fileName, dir, status, filteredNames, createdOn
 	from archive
 	where status = ? and background = ?
 	LIMIT 10;
@@ -130,7 +130,7 @@ func archiveMapper(rows *sql.Rows) ([]models.Request, error) {
 	requests := []models.Request{}
 	for rows.Next() {
 		var channel models.Request
-		err := rows.Scan(&channel.ID, &channel.File, &channel.Dir, &channel.Status, &channel.CreatedOn)
+		err := rows.Scan(&channel.ID, &channel.File, &channel.Dir, &channel.Status, &channel.FilteredNames, &channel.CreatedOn)
 		if err != nil {
 			return nil, err
 		}

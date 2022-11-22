@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/google/uuid"
@@ -57,6 +58,7 @@ func (e *ExtractService) InitiateExtract(ctx context.Context, req *models.Reques
 
 func (e *ExtractService) extractFiles(req *models.Request) (*models.Request, error) {
 	hasFilteredName := false
+	hasPartialExtraction := false
 	zipPath := req.Dir + req.File
 	read, err := zip.OpenReader(zipPath)
 	if err != nil {
@@ -66,18 +68,36 @@ func (e *ExtractService) extractFiles(req *models.Request) (*models.Request, err
 
 	// filter names
 	var fileNames = make(map[string]string)
+	var partiallyFiltered = strings.Split(req.PartialExtraction, "|")
 	if len(req.FilteredNames) > 1 {
 		hasFilteredName = true
 		names := strings.Split(req.FilteredNames, "|")
 		for _, n := range names {
 			fileNames[n] = n
 		}
+	} else if len(partiallyFiltered) > 1 {
+		hasPartialExtraction = true
 	}
 
-	for _, file := range read.File {
-		namedFile := fileNames[file.Name]
-		if hasFilteredName && len(namedFile) < 1 {
-			break
+	for i, file := range read.File {
+		if hasFilteredName && len(fileNames) > 0 {
+			name := strings.TrimSuffix(file.Name, filepath.Ext(file.Name))
+			namedFile := fileNames[name]
+			if len(namedFile) < 1 {
+				continue
+			}
+		} else if hasPartialExtraction {
+			found := false
+			for _, r := range partiallyFiltered {
+				record, _ := strconv.ParseInt(r, 6, 12)
+				if int(record-1) == i {
+					found = true
+					break
+				}
+			}
+			if !found {
+				continue
+			}
 		}
 
 		zippedFile, err := file.Open()
@@ -130,7 +150,7 @@ func (e *ExtractService) insertRecordToDB(ctx context.Context, req *models.Reque
 	req.ID = uuid.New().String()
 	req.Status = "new"
 	query := `
-	insert into extract (id, fileName, dir, status, aligorithm, filters, partialExtraction, background)
+	insert into extract (id, fileName, dir, status, aligorithm, filteredNames, partialExtraction, background)
 	VALUES(?,?,?,?,?,?,?,?);
 	`
 	_, inserted := e.database.Insert(ctx, query, req.ID, req.File, req.Dir, req.Status, req.Aligorithm, req.FilteredNames, req.PartialExtraction, req.Background)

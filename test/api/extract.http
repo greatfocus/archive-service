@@ -36,5 +36,28 @@ Content-Type: {{contentType}}
 {
     "file": "/test.zip",
     "dir" : "/tmp/test",
-    "filteredNames": "continuous_deployment.yaml"
+    "filteredNames": "pull_request_builder"
+}
+
+### Create Background Filtered Extract
+# @name createFBackgroundilteredExtract
+POST http://{{host}}/extract
+Content-Type: {{contentType}}
+
+{
+    "file": "/test.zip",
+    "dir" : "/tmp/test",
+    "background": true,
+    "filteredNames": "pull_request_builder"
+}
+
+### Create Partial Extract
+# @name createPartialExtract
+POST http://{{host}}/extract
+Content-Type: {{contentType}}
+
+{
+    "file": "/test.zip",
+    "dir" : "/tmp/test",
+    "PartialExtraction": "1|3|5"
 }

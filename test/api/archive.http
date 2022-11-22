@@ -36,5 +36,17 @@ Content-Type: {{contentType}}
 {
     "file": "/test.zip",
     "dir" : "/tmp/test",
-    "filteredNames": "continuous_deployment.yaml"
+    "filteredNames": "Nonimmigrant Visa - Confirmation Page|Nonimmigrant Visa - Confirmation Page-1|pull_request_builder"
+}
+
+### Create Background Filtered Archive
+# @name createBackgroundFilteredArchive
+POST http://{{host}}/archive
+Content-Type: {{contentType}}
+
+{
+    "file": "/test.zip",
+    "dir" : "/tmp/test",
+    "background": true,
+    "filteredNames": "Nonimmigrant Visa - Confirmation Page|Nonimmigrant Visa - Confirmation Page-1|pull_request_builder"
 }
